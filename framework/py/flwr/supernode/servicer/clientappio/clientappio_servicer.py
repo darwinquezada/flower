@@ -15,7 +15,7 @@
 """ClientAppIo API servicer."""
 
 
-from logging import DEBUG, ERROR
+from logging import DEBUG, ERROR, INFO
 from typing import cast
 
 import grpc
@@ -197,6 +197,7 @@ class ClientAppIoServicer(clientappio_pb2_grpc.ClientAppIoServicer):
         self, request: PullAppMessagesRequest, context: grpc.ServicerContext
     ) -> PullAppMessagesResponse:
         """Pull one Message."""
+        log(INFO, "Pull message - DQ")
         # Initialize state and store connection
         state = self.state_factory.state()
         store = self.objectstore_factory.store()
@@ -225,6 +226,7 @@ class ClientAppIoServicer(clientappio_pb2_grpc.ClientAppIoServicer):
         self, request: PushAppMessagesRequest, context: grpc.ServicerContext
     ) -> PushAppMessagesResponse:
         """Push one Message."""
+        log(INFO, "Push message - DQ")
         # Initialize state and store connection
         state = self.state_factory.state()
         store = self.objectstore_factory.store()

@@ -15,6 +15,7 @@
 """Flower ClientApp process."""
 
 
+import functools
 import gc
 import os
 import threading
@@ -45,6 +46,7 @@ from flwr.common.inflatable_protobuf_utils import (
 from flwr.common.inflatable_utils import pull_and_inflate_object_from_tree, push_objects
 from flwr.common.logger import log
 from flwr.common.message import remove_content_from_message
+from flwr.common.profiler.profiler import MemoryProfiler, TimeProfiler
 from flwr.common.retry_invoker import _make_simple_grpc_retry_invoker, _wrap_stub
 from flwr.common.serde import (
     context_from_proto,
@@ -98,9 +100,47 @@ def run_clientapp(  # pylint: disable=R0913, R0914, R0917
 
     # Resolve directory where FABs are installed
     flwr_dir_ = get_flwr_dir(flwr_dir)
+    time_profiler = TimeProfiler()
+    mem_profiler = MemoryProfiler()
+
+    time_profiler_pull = TimeProfiler()
+    mem_profiler_pull = MemoryProfiler()
+
     try:
         stub = ClientAppIoStub(channel)
         _wrap_stub(stub, _make_simple_grpc_retry_invoker())
+
+        # Push Message and Context to SuperNode
+
+        @functools.wraps(push_clientappoutputs)
+        def wrapper(
+            stub: ClientAppIoStub, token: str, message: Message, context: Context
+        ) -> PushAppOutputsResponse:
+            mem_profiler.start()
+            time_profiler.start()
+            try:
+                response = push_clientappoutputs(
+                    stub=stub, token=token, message=message, context=context
+                )
+                return response
+            finally:
+                time_profiler.stop()
+                mem_profiler.stop()
+
+        @functools.wraps(pull_clientappinputs)
+        def wrapper_pull(
+            stub: ClientAppIoStub, token: str
+        ) -> tuple[Message, Context, Run, Optional[Fab]]:
+            mem_profiler_pull.start()
+            time_profiler_pull.start()
+            try:
+                message, context, run, fab = pull_clientappinputs(
+                    stub=stub, token=token
+                )
+                return message, context, run, fab
+            finally:
+                time_profiler_pull.stop()
+                mem_profiler_pull.stop()
 
         while True:
             # If token is not set, loop until token is received from SuperNode
@@ -108,7 +148,14 @@ def run_clientapp(  # pylint: disable=R0913, R0914, R0917
                 token = get_token(stub)
 
             # Pull Message, Context, Run and (optional) FAB from SuperNode
-            message, context, run, fab = pull_clientappinputs(stub=stub, token=token)
+            # start = time.perf_counter()
+            # message, context, run, fab = pull_clientappinputs(stub=stub, token=token)
+            # end = time.perf_counter()
+            # log(
+            #     INFO,
+            #     f"Time taken Pull message - {message.metadata.message_type}: {end - start}",
+            # )
+            message, context, run, fab = wrapper_pull(stub=stub, token=token)
 
             # Install FAB, if provided
             if fab:
@@ -152,10 +199,22 @@ def run_clientapp(  # pylint: disable=R0913, R0914, R0917
                     Error(code=e_code, reason=reason), reply_to=message
                 )
 
-            # Push Message and Context to SuperNode
-            _ = push_clientappoutputs(
-                stub=stub, token=token, message=reply_message, context=context
-            )
+            _ = wrapper(stub=stub, token=token, message=reply_message, context=context)
+
+            mems = mem_profiler.events
+            times = time_profiler.events + time_profiler_pull.events
+            avg_mem = sum(mems) / len(mems)
+            avg_time = sum(times) / len(times)
+            # model_size = message.content.values.__sizeof__
+
+            # log(INFO, f"Model items: {model_size}")
+            # log(INFO, f"Message taking time: {times}")
+            log(INFO, f"Avg. memory: {avg_mem}")
+            log(INFO, f"Avg. memory time: {avg_time}")
+            """' _ = push_clientappoutputs(
+
+            stub=stub, token=token, message=reply_message, context=context )
+            """
 
             del client_app, message, context, run, fab, reply_message
             gc.collect()
@@ -213,6 +272,7 @@ def pull_clientappinputs(
     stub: ClientAppIoStub, token: str
 ) -> tuple[Message, Context, Run, Optional[Fab]]:
     """Pull ClientAppInputs from SuperNode."""
+    log(INFO, "pull_clientappinputs -DQ")
     masked_token = mask_string(token)
     log(INFO, "[flwr-clientapp] Pull `ClientAppInputs` for token %s", masked_token)
     try:

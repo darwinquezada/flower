@@ -15,9 +15,10 @@
 """Contextmanager for a gRPC request-response channel to the Flower server."""
 
 
+import time
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
-from logging import ERROR
+from logging import ERROR, INFO
 from pathlib import Path
 from typing import Callable, Optional, Union, cast
 
@@ -248,8 +249,16 @@ def grpc_request_response(  # pylint: disable=R0913,R0914,R0915,R0917
             return None
 
         # Try to pull a message with its object tree from SuperLink
+        # log(INFO, "Init pulling Message - DQ")
+
+        # start = time.perf_counter()
         request = PullMessagesRequest(node=node)
         response: PullMessagesResponse = stub.PullMessages(request=request)
+        # end = time.perf_counter()
+
+        # log(INFO, f"Time taken Pull Message: {end - start}")
+
+        # log(INFO, "End pulling Message - DQ")
 
         # If no messages are available, return None
         if len(response.messages_list) == 0:
@@ -277,13 +286,17 @@ def grpc_request_response(  # pylint: disable=R0913,R0914,R0915,R0917
             message = remove_content_from_message(message)
 
         # Send the message with its ObjectTree to SuperLink
+        # log(INFO, "Push message init - Darwin")
+        # start = time.perf_counter()
         request = PushMessagesRequest(
             node=node,
             messages_list=[message_to_proto(message)],
             message_object_trees=[object_tree],
         )
         response: PushMessagesResponse = stub.PushMessages(request=request)
-
+        # end = time.perf_counter()
+        # log(INFO, f"Time taken PushMessage: {end - start}")
+        # log(INFO, "Push message end - Darwin")
         # Get and return the object IDs to push
         object_ids_to_push = response.objects_to_push[object_tree.object_id]
         return set(object_ids_to_push.object_ids)

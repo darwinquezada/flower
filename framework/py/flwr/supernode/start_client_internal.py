@@ -289,7 +289,7 @@ def _pull_and_store_message(  # pylint: disable=too-many-positional-arguments
             log(INFO, "[RUN %s]", message.metadata.run_id)
         log(
             INFO,
-            "Received: %s message %s",
+            "Received - DQ: %s message %s",
             message.metadata.message_type,
             message.metadata.message_id,
         )
@@ -380,7 +380,7 @@ def _push_messages(
             log(INFO, "[RUN %s]", message.metadata.run_id)
         log(
             INFO,
-            "Sending: %s message",
+            "Sending - DQ: %s message",
             message.metadata.message_type,
         )
 

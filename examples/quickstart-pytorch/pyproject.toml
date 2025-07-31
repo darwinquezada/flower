@@ -20,6 +20,11 @@ packages = ["."]
 [tool.flwr.app]
 publisher = "flwrlabs"
 
+[tool.flwr.federations.local-deployment]
+address = "127.0.0.1:9093"
+insecure = true
+
+
 [tool.flwr.app.components]
 serverapp = "pytorchexample.server_app:app"
 clientapp = "pytorchexample.client_app:app"
@@ -35,9 +40,9 @@ batch-size = 32
 default = "local-simulation"
 
 [tool.flwr.federations.local-simulation]
-options.num-supernodes = 10
+options.num-supernodes = 1
 
 [tool.flwr.federations.local-simulation-gpu]
-options.num-supernodes = 10
+options.num-supernodes = 1
 options.backend.client-resources.num-cpus = 2 # each ClientApp assumes to use 2CPUs
 options.backend.client-resources.num-gpus = 0.2 # at most 5 ClientApp will run in a given GPU

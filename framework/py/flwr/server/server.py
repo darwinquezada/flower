@@ -89,7 +89,7 @@ class Server:
         history = History()
 
         # Initialize parameters
-        log(INFO, "[INIT]")
+        log(INFO, "[INIT - DARWIN]")
         self.parameters = self._get_initial_parameters(server_round=0, timeout=timeout)
         log(INFO, "Starting evaluation of initial global parameters")
         res = self.strategy.evaluate(0, parameters=self.parameters)
