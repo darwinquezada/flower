@@ -76,7 +76,18 @@ from flwr.proto.clientappio_pb2 import (
 from flwr.proto.clientappio_pb2_grpc import ClientAppIoStub
 from flwr.proto.node_pb2 import Node  # pylint: disable=E0611
 from flwr.supercore.utils import mask_string
+from flwr.common.profiler.load_config import LoadConfig
 
+# Load configuration
+root_path = os.path.dirname(os.path.abspath(__file__))
+config = LoadConfig(os.path.join(root_path, "pyproject.toml"))
+fl = config.get_fl_config()
+nn = config.get_nn_config()
+test = config.get_test_config()
+network = config.get_network_config()
+
+results_dir = os.path.join("results", 'TENSORFLOW', nn.get("model"), test.get("dataset"), network.get("technology"), network.get("protocol"))
+os.makedirs(results_dir, exist_ok=True)
 
 def run_clientapp(  # pylint: disable=R0913, R0914, R0917
     clientappio_api_address: str,
