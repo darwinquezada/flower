@@ -23,6 +23,7 @@ import threading
 import time
 from datetime import datetime
 from logging import DEBUG, ERROR, INFO
+from pathlib import Path
 from typing import Optional
 
 import grpc
@@ -80,17 +81,18 @@ from flwr.proto.clientappio_pb2_grpc import ClientAppIoStub
 from flwr.proto.node_pb2 import Node  # pylint: disable=E0611
 from flwr.supercore.utils import mask_string
 
+cwd = Path.cwd()
+print("Current working directory:", cwd)
+
 # Load configuration
-root_path = os.path.dirname(os.path.abspath(__file__))
-log(INFO, f"Root path: {root_path}")
-config = LoadConfig(os.path.join(root_path, "pyproject.toml"))
+config = LoadConfig(os.path.join(cwd, "pyproject.toml"))
 fl = config.get_fl_config()
 nn = config.get_nn_config()
 test = config.get_test_config()
 network = config.get_network_config()
 
 results_dir = os.path.join(
-    root_path,
+    cwd,
     "results",
     "FLOWER",
     nn.get("model"),
