@@ -15,11 +15,13 @@
 """Flower ClientApp process."""
 
 
+import csv
 import functools
 import gc
 import os
 import threading
 import time
+from datetime import datetime
 from logging import DEBUG, ERROR, INFO
 from typing import Optional
 
@@ -46,6 +48,7 @@ from flwr.common.inflatable_protobuf_utils import (
 from flwr.common.inflatable_utils import pull_and_inflate_object_from_tree, push_objects
 from flwr.common.logger import log
 from flwr.common.message import remove_content_from_message
+from flwr.common.profiler.load_config import LoadConfig
 from flwr.common.profiler.profiler import MemoryProfiler, TimeProfiler
 from flwr.common.retry_invoker import _make_simple_grpc_retry_invoker, _wrap_stub
 from flwr.common.serde import (
@@ -76,21 +79,28 @@ from flwr.proto.clientappio_pb2 import (
 from flwr.proto.clientappio_pb2_grpc import ClientAppIoStub
 from flwr.proto.node_pb2 import Node  # pylint: disable=E0611
 from flwr.supercore.utils import mask_string
-from flwr.common.profiler.load_config import LoadConfig
-import csv
-from datetime import datetime
 
 # Load configuration
 root_path = os.path.dirname(os.path.abspath(__file__))
+log(INFO, f"Root path: {root_path}")
 config = LoadConfig(os.path.join(root_path, "pyproject.toml"))
 fl = config.get_fl_config()
 nn = config.get_nn_config()
 test = config.get_test_config()
 network = config.get_network_config()
 
-results_dir = os.path.join(root_path, "results", 'FLOWER', nn.get("model"), test.get("dataset"), network.get("technology"), network.get("protocol"))
+results_dir = os.path.join(
+    root_path,
+    "results",
+    "FLOWER",
+    nn.get("model"),
+    test.get("dataset"),
+    network.get("technology"),
+    network.get("protocol"),
+)
 log(INFO, f"Root path: {results_dir}")
 os.makedirs(results_dir, exist_ok=True)
+
 
 def run_clientapp(  # pylint: disable=R0913, R0914, R0917
     clientappio_api_address: str,
@@ -229,33 +239,38 @@ def run_clientapp(  # pylint: disable=R0913, R0914, R0917
 
             stub=stub, token=token, message=reply_message, context=context )
             """
-            
-            filename = os.path.join(results_dir, 
-                                    f"network.csv")
-            write_header = not os.path.exists(filename) or os.stat(filename).st_size == 0
-            
-            with open(filename, "a", newline='') as csvfile:
+
+            filename = os.path.join(results_dir, "network.csv")
+            write_header = (
+                not os.path.exists(filename) or os.stat(filename).st_size == 0
+            )
+
+            with open(filename, "a", newline="") as csvfile:
                 writer = csv.writer(csvfile)
                 if write_header:
-                    writer.writerow([
-                        "timestamp",
-                        "client_id",
-                        "sync_time_sec",
-                        "sync_data_bytes",
-                        "sync_memory_bytes",
-                        "model_param_count",
-                        "model_param_bytes"
-                    ])
-                    
-                writer.writerow([
-                    datetime.now().isoformat(),
-                    message.metadata.src_node_id,
-                    round(avg_time, 5),
-                    0,
-                    int(avg_mem),
-                    0, # number of parameters
-                    0, # bytes
-                ])
+                    writer.writerow(
+                        [
+                            "timestamp",
+                            "client_id",
+                            "sync_time_sec",
+                            "sync_data_bytes",
+                            "sync_memory_bytes",
+                            "model_param_count",
+                            "model_param_bytes",
+                        ]
+                    )
+
+                writer.writerow(
+                    [
+                        datetime.now().isoformat(),
+                        message.metadata.src_node_id,
+                        round(avg_time, 5),
+                        0,
+                        int(avg_mem),
+                        0,  # number of parameters
+                        0,  # bytes
+                    ]
+                )
 
             del client_app, message, context, run, fab, reply_message
             gc.collect()

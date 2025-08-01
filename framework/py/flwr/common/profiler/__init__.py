@@ -14,12 +14,12 @@
 # ==============================================================================
 """Profiler."""
 
-from .profiler import MemoryProfiler, Profiler, TimeProfiler
 from .load_config import LoadConfig
+from .profiler import MemoryProfiler, Profiler, TimeProfiler
 
 __all__ = [
+    "LoadConfig",
     "MemoryProfiler",
     "Profiler",
     "TimeProfiler",
-    "LoadConfig"
 ]

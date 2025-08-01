@@ -15,10 +15,9 @@
 """Contextmanager for a gRPC request-response channel to the Flower server."""
 
 
-import time
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
-from logging import ERROR, INFO
+from logging import ERROR
 from pathlib import Path
 from typing import Callable, Optional, Union, cast
 
