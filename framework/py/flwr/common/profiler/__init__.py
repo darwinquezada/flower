@@ -15,9 +15,11 @@
 """Profiler."""
 
 from .profiler import MemoryProfiler, Profiler, TimeProfiler
+from .load_config import LoadConfig
 
 __all__ = [
     "MemoryProfiler",
     "Profiler",
     "TimeProfiler",
+    "LoadConfig"
 ]
