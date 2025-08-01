@@ -85,7 +85,9 @@ cwd = Path.cwd()
 print("Current working directory:", cwd)
 
 # Load configuration
-config = LoadConfig(os.path.join(cwd, "pyproject.toml"))
+config = LoadConfig("pyproject.toml")
+print("Flower dir: ", os.path.join(cwd, "pyproject.toml"))
+
 fl = config.get_fl_config()
 nn = config.get_nn_config()
 test = config.get_test_config()
